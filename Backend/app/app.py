@@ -6,6 +6,7 @@ from bson import ObjectId
 import requests
 import os
 from datetime import timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
 client = MongoClient(os.environ.get("MONGO_URI"))
@@ -14,6 +15,7 @@ usersCollection = db['users']
 app.config['JWT_SECRET_KEY'] = 'super-secret'
 jwt = JWTManager(app)
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=4)
+CORS(app)
 
 @jwt.user_identity_loader
 def user_identity_lookup(user):
