@@ -4,39 +4,45 @@
 	<declaration>// Place global declarations here.
 chan UnlockDoor;
 chan CommandSent;
-chan CheckRecieved;
+chan CommandRecieved;
 chan Hbeat;
 chan SendHbeat;
 chan HbeatRecieved;
 chan Authenticate;
+chan Notify;
 
-clock Timer;
+clock UnlockTimer;
+clock LockTimer;
 clock HbeatTimer;
 
 bool Auth = false;
 bool PowerOn = false;
 bool LockConnected = false;
-bool PhoneConnected = false;</declaration>
+bool PhoneConnected = false;
+bool Request = false;
+
+int Error = 0; // 0 = No Error, 1 = App Error, 2 = Phone connection Error, 3 = Lock is jammed Error, 4 = Lock connection Error, 5 = Timer above 10 seconds Error, 6 = Not Authorized, 
+</declaration>
 	<template>
 		<name x="5" y="5">lock</name>
 		<location id="id0" x="-280" y="-8">
 			<name x="-306" y="-42">Locked</name>
 		</location>
-		<location id="id1" x="-59" y="170">
-			<name x="-51" y="144">Unlocked</name>
+		<location id="id1" x="-59" y="187">
+			<name x="-51" y="161">Unlocked</name>
 		</location>
 		<location id="id2" x="-59" y="-8">
 			<name x="-93" y="-59">Unlocking</name>
-			<label kind="invariant" x="-93" y="-42">Timer&lt;=10</label>
+			<label kind="invariant" x="-93" y="-42">UnlockTimer&lt;=10</label>
 		</location>
-		<location id="id3" x="-280" y="170">
-			<name x="-348" y="144">Locking</name>
+		<location id="id3" x="-280" y="187">
+			<name x="-348" y="161">Locking</name>
 		</location>
-		<location id="id4" x="102" y="-8">
-			<name x="59" y="-42">ErrorTimer</name>
+		<location id="id4" x="221" y="-8">
+			<name x="178" y="-42">ErrorTimer</name>
 		</location>
-		<location id="id5" x="-170" y="76">
-			<name x="-204" y="42">ErrorJammed</name>
+		<location id="id5" x="-170" y="85">
+			<name x="-204" y="51">ErrorJammed</name>
 		</location>
 		<init ref="id0"/>
 		<transition id="id6">
@@ -51,15 +57,18 @@ PowerOn</label>
 		<transition id="id7">
 			<source ref="id3"/>
 			<target ref="id5"/>
+			<label kind="assignment" x="-263" y="127">Error:=3</label>
 		</transition>
 		<transition id="id8">
 			<source ref="id2"/>
 			<target ref="id5"/>
+			<label kind="assignment" x="-144" y="25">Error:=3</label>
 		</transition>
 		<transition id="id9">
 			<source ref="id2"/>
 			<target ref="id4"/>
-			<label kind="guard" x="-8" y="-25">Timer&gt;10</label>
+			<label kind="guard" x="51" y="-42">UnlockTimer&gt;10</label>
+			<label kind="assignment" x="51" y="-25">Error:=5</label>
 		</transition>
 		<transition id="id10">
 			<source ref="id3"/>
@@ -68,12 +77,13 @@ PowerOn</label>
 		<transition id="id11">
 			<source ref="id1"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-195" y="153">PowerOn</label>
+			<label kind="guard" x="-212" y="144">PowerOn &amp;&amp;
+LockTimer&gt;=7</label>
 		</transition>
 		<transition id="id12">
 			<source ref="id2"/>
 			<target ref="id1"/>
-			<label kind="guard" x="-59" y="68">Timer&lt;=10</label>
+			<label kind="guard" x="-59" y="68">UnlockTimer&lt;=10</label>
 		</transition>
 		<transition id="id13">
 			<source ref="id0"/>
@@ -92,7 +102,7 @@ bool ExternalPower = true;</declaration>
 		</location>
 		<location id="id15" x="-254" y="-85">
 			<name x="-314" y="-136">NormalOperation</name>
-			<label kind="invariant" x="-314" y="-119">ExternalPower==true</label>
+			<label kind="invariant" x="-314" y="-119">ExternalPower</label>
 		</location>
 		<location id="id16" x="93" y="-85">
 			<name x="50" y="-119">BatteryMode</name>
@@ -120,7 +130,7 @@ bool ExternalPower = true;</declaration>
 		<transition id="id21">
 			<source ref="id16"/>
 			<target ref="id15"/>
-			<label kind="guard" x="-144" y="-102">ExternalPower==true</label>
+			<label kind="guard" x="-127" y="-102">ExternalPower</label>
 		</transition>
 		<transition id="id22">
 			<source ref="id18"/>
@@ -148,7 +158,7 @@ bool ExternalPower = true;</declaration>
 		<transition id="id26">
 			<source ref="id15"/>
 			<target ref="id18"/>
-			<label kind="assignment" x="-314" y="-229">UnlockCycles:=0</label>
+			<label kind="assignment" x="-314" y="-238">UnlockCycles:=0</label>
 			<nail x="-254" y="-212"/>
 		</transition>
 	</template>
@@ -172,7 +182,7 @@ bool ExternalPower = true;</declaration>
 		</location>
 		<location id="id32" x="119" y="-136">
 			<name x="136" y="-161">Connected</name>
-			<label kind="invariant" x="136" y="-144">LockConnected==true</label>
+			<label kind="invariant" x="136" y="-144">LockConnected</label>
 		</location>
 		<location id="id33" x="-255" y="-272">
 			<name x="-323" y="-306">ErrorLockConnection</name>
@@ -182,68 +192,74 @@ bool ExternalPower = true;</declaration>
 		</location>
 		<location id="id35" x="119" y="-272">
 			<name x="76" y="-323">Disconnected</name>
-			<label kind="invariant" x="76" y="-306">LockConnected==false</label>
+			<label kind="invariant" x="76" y="-306">!LockConnected</label>
 		</location>
 		<location id="id36" x="-306" y="25">
 			<name x="-331" y="-8">Initial</name>
 		</location>
 		<init ref="id36"/>
 		<transition id="id37">
+			<source ref="id34"/>
+			<target ref="id35"/>
+			<label kind="guard" x="-136" y="-221">!LockConnected</label>
+		</transition>
+		<transition id="id38">
 			<source ref="id36"/>
 			<target ref="id31"/>
 			<label kind="synchronisation" x="-289" y="25">SendHbeat?</label>
 		</transition>
-		<transition id="id38">
-			<source ref="id27"/>
-			<target ref="id34"/>
-			<label kind="guard" x="-272" y="-85">LockConnected==false</label>
-		</transition>
 		<transition id="id39">
 			<source ref="id27"/>
-			<target ref="id32"/>
-			<label kind="guard" x="-51" y="-85">LockConnected==true</label>
+			<target ref="id34"/>
+			<label kind="guard" x="-238" y="-85">!LockConnected</label>
 		</transition>
 		<transition id="id40">
+			<source ref="id27"/>
+			<target ref="id32"/>
+			<label kind="guard" x="-34" y="-85">LockConnected</label>
+		</transition>
+		<transition id="id41">
 			<source ref="id31"/>
 			<target ref="id27"/>
 		</transition>
-		<transition id="id41">
+		<transition id="id42">
 			<source ref="id32"/>
 			<target ref="id30"/>
 		</transition>
-		<transition id="id42">
+		<transition id="id43">
 			<source ref="id29"/>
 			<target ref="id30"/>
 			<nail x="85" y="84"/>
 		</transition>
-		<transition id="id43">
+		<transition id="id44">
 			<source ref="id28"/>
 			<target ref="id31"/>
 		</transition>
-		<transition id="id44">
+		<transition id="id45">
 			<source ref="id29"/>
 			<target ref="id28"/>
 			<label kind="synchronisation" x="-85" y="143">HbeatRecieved?</label>
 		</transition>
-		<transition id="id45">
+		<transition id="id46">
 			<source ref="id30"/>
 			<target ref="id29"/>
 			<label kind="synchronisation" x="153" y="75">Hbeat!</label>
 			<nail x="153" y="84"/>
 		</transition>
-		<transition id="id46">
+		<transition id="id47">
 			<source ref="id33"/>
 			<target ref="id34"/>
 		</transition>
-		<transition id="id47">
+		<transition id="id48">
 			<source ref="id32"/>
 			<target ref="id35"/>
+			<label kind="assignment" x="51" y="-212">LockConnected:=false</label>
 		</transition>
-		<transition id="id48">
+		<transition id="id49">
 			<source ref="id35"/>
 			<target ref="id33"/>
 		</transition>
-		<transition id="id49">
+		<transition id="id50">
 			<source ref="id34"/>
 			<target ref="id32"/>
 			<label kind="assignment" x="-144" y="-136">LockConnected:=true</label>
@@ -252,27 +268,23 @@ bool ExternalPower = true;</declaration>
 	<template>
 		<name>ui</name>
 		<declaration>int RetryCount;</declaration>
-		<location id="id50" x="-221" y="-119">
+		<location id="id51" x="-221" y="-119">
 			<name x="-281" y="-153">CheckConnection</name>
 		</location>
-		<location id="id51" x="127" y="-68">
-			<name x="102" y="-102">ErrorApp</name>
+		<location id="id52" x="-85" y="-51">
+			<name x="-110" y="-85">ErrorApp</name>
 		</location>
-		<location id="id52" x="-221" y="-8">
-			<name x="-238" y="-41">Idle</name>
+		<location id="id53" x="-221" y="51">
+			<name x="-212" y="26">Idle</name>
 		</location>
-		<location id="id53" x="59" y="110">
-			<name x="67" y="76">AwaitConfirmation</name>
+		<location id="id54" x="59" y="204">
+			<name x="0" y="213">AwaitConfirmation</name>
 		</location>
-		<location id="id54" x="59" y="-8">
-			<name x="17" y="-42">SendCommand</name>
+		<location id="id55" x="-85" y="51">
+			<name x="-127" y="17">SendCommand</name>
 		</location>
-		<location id="id55" x="-221" y="110">
-			<name x="-280" y="76">CommandRecieved</name>
-			<urgent/>
-		</location>
-		<location id="id56" x="59" y="-238">
-			<name x="25" y="-272">Connected</name>
+		<location id="id56" x="59" y="-119">
+			<name x="25" y="-153">Connected</name>
 		</location>
 		<location id="id57" x="-59" y="-289">
 			<name x="-127" y="-323">ErrorPhoneConnection</name>
@@ -280,207 +292,244 @@ bool ExternalPower = true;</declaration>
 		<location id="id58" x="-221" y="-238">
 			<name x="-263" y="-272">Connecting</name>
 		</location>
-		<init ref="id52"/>
-		<transition id="id59">
-			<source ref="id52"/>
-			<target ref="id50"/>
+		<location id="id59" x="-340" y="51">
+			<name x="-382" y="17">UserNotified</name>
+		</location>
+		<location id="id60" x="59" y="51">
+			<name x="-1" y="34">LogIn</name>
+		</location>
+		<location id="id61" x="178" y="-119">
+		</location>
+		<init ref="id53"/>
+		<transition id="id62">
+			<source ref="id61"/>
+			<target ref="id56"/>
+			<nail x="119" y="-178"/>
 		</transition>
-		<transition id="id60">
+		<transition id="id63">
+			<source ref="id56"/>
+			<target ref="id61"/>
+			<nail x="119" y="-59"/>
+		</transition>
+		<transition id="id64">
+			<source ref="id60"/>
+			<target ref="id54"/>
+			<label kind="synchronisation" x="-42" y="110">CommandSent!</label>
+		</transition>
+		<transition id="id65">
+			<source ref="id55"/>
+			<target ref="id51"/>
+		</transition>
+		<transition id="id66">
+			<source ref="id53"/>
+			<target ref="id55"/>
+			<label kind="assignment" x="-204" y="59">UnlockTimer:=0</label>
+		</transition>
+		<transition id="id67">
+			<source ref="id56"/>
+			<target ref="id60"/>
+			<label kind="guard" x="17" y="-76">Auth</label>
+		</transition>
+		<transition id="id68">
+			<source ref="id51"/>
+			<target ref="id56"/>
+			<label kind="guard" x="-144" y="-144">PhoneConnected</label>
+		</transition>
+		<transition id="id69">
+			<source ref="id59"/>
+			<target ref="id53"/>
+			<nail x="-280" y="-9"/>
+		</transition>
+		<transition id="id70">
+			<source ref="id53"/>
+			<target ref="id59"/>
+			<label kind="synchronisation" x="-306" y="118">Notify?</label>
+			<nail x="-280" y="118"/>
+		</transition>
+		<transition id="id71">
 			<source ref="id58"/>
 			<target ref="id58"/>
 			<label kind="assignment" x="-348" y="-298">RetryCount++</label>
 			<nail x="-323" y="-238"/>
 			<nail x="-323" y="-281"/>
 		</transition>
-		<transition id="id61">
+		<transition id="id72">
 			<source ref="id58"/>
 			<target ref="id57"/>
 			<label kind="guard" x="-195" y="-298">RetryCount&gt;10</label>
 		</transition>
-		<transition id="id62">
-			<source ref="id53"/>
-			<target ref="id54"/>
-			<nail x="8" y="51"/>
-		</transition>
-		<transition id="id63">
-			<source ref="id56"/>
-			<target ref="id52"/>
-		</transition>
-		<transition id="id64">
-			<source ref="id50"/>
+		<transition id="id73">
+			<source ref="id51"/>
 			<target ref="id58"/>
-			<label kind="guard" x="-289" y="-187">PhoneConnected==false</label>
+			<label kind="guard" x="-289" y="-187">!PhoneConnected</label>
 			<label kind="assignment" x="-290" y="-204">RetryCount:=0</label>
 		</transition>
-		<transition id="id65">
-			<source ref="id54"/>
-			<target ref="id51"/>
-		</transition>
-		<transition id="id66">
+		<transition id="id74">
 			<source ref="id55"/>
 			<target ref="id52"/>
 		</transition>
-		<transition id="id67">
-			<source ref="id53"/>
-			<target ref="id55"/>
-			<label kind="synchronisation" x="-136" y="110">CheckRecieved?</label>
-		</transition>
-		<transition id="id68">
+		<transition id="id75">
 			<source ref="id54"/>
 			<target ref="id53"/>
-			<label kind="synchronisation" x="110" y="34">CommandSent!</label>
-			<nail x="110" y="51"/>
+			<label kind="synchronisation" x="-153" y="178">CommandRecieved?</label>
+			<nail x="-221" y="203"/>
 		</transition>
-		<transition id="id69">
-			<source ref="id52"/>
-			<target ref="id54"/>
-			<label kind="guard" x="-110" y="-68">Auth==true &amp;&amp;
-PhoneConnected</label>
-			<label kind="assignment" x="-110" y="-25">Timer:=0</label>
-		</transition>
-		<transition id="id70">
+		<transition id="id76">
 			<source ref="id58"/>
 			<target ref="id56"/>
-			<label kind="assignment" x="-161" y="-238">PhoneConnected:=true</label>
+			<label kind="assignment" x="-153" y="-238">PhoneConnected:=true</label>
+			<nail x="59" y="-238"/>
 		</transition>
 	</template>
 	<template>
 		<name>backend</name>
-		<location id="id71" x="-348" y="-34">
-			<name x="-382" y="-17">DoorUnlocked</name>
+		<location id="id77" x="-374" y="-17">
+			<name x="-425" y="0">DoorUnlocked</name>
 		</location>
-		<location id="id72" x="-272" y="-145">
-			<name x="-331" y="-136">NotAuthorized</name>
+		<location id="id78" x="-272" y="-128">
+			<name x="-331" y="-119">NotAuthorized</name>
 		</location>
-		<location id="id73" x="-348" y="-255">
-			<name x="-416" y="-289">RequestAuthorized</name>
+		<location id="id79" x="-374" y="-255">
+			<name x="-442" y="-289">RequestAuthorized</name>
 		</location>
-		<location id="id74" x="-136" y="-255">
+		<location id="id80" x="-136" y="-255">
 			<name x="-213" y="-289">CheckAuthentication</name>
 		</location>
-		<location id="id75" x="42" y="-255">
+		<location id="id81" x="42" y="-255">
 			<name x="-17" y="-289">RequestRecieved</name>
 		</location>
-		<location id="id76" x="-136" y="-144">
-			<name x="-179" y="-178">NoRequests</name>
+		<location id="id82" x="-136" y="-127">
+			<name x="-179" y="-161">NoRequests</name>
 		</location>
-		<location id="id77" x="42" y="-144">
-			<name x="-17" y="-178">CheckForRequests</name>
+		<location id="id83" x="42" y="-127">
+			<name x="-17" y="-161">CheckForRequests</name>
 		</location>
-		<location id="id78" x="-136" y="127">
-			<name x="-170" y="144">NotifyOwner</name>
+		<location id="id84" x="-34" y="187">
+			<name x="-68" y="204">NotifyOwner</name>
 		</location>
-		<location id="id79" x="-136" y="42">
-			<name x="-119" y="34">LockBadHealth</name>
+		<location id="id85" x="-34" y="102">
+			<name x="-17" y="94">LockBadHealth</name>
 		</location>
-		<location id="id80" x="42" y="-34">
-			<name x="9" y="-68">LockAlive</name>
+		<location id="id86" x="42" y="-17">
+			<name x="9" y="-51">LockAlive</name>
+			<urgent/>
 		</location>
-		<location id="id81" x="-136" y="-34">
-			<name x="-196" y="-76">CheckForHbeat</name>
+		<location id="id87" x="-136" y="-17">
+			<name x="-178" y="-51">AwaitHbeat</name>
 		</location>
-		<init ref="id81"/>
-		<transition id="id82">
-			<source ref="id71"/>
-			<target ref="id81"/>
-		</transition>
-		<transition id="id83">
-			<source ref="id73"/>
-			<target ref="id71"/>
-			<label kind="synchronisation" x="-442" y="-161">UnlockDoor!</label>
-		</transition>
-		<transition id="id84">
-			<source ref="id72"/>
-			<target ref="id81"/>
-		</transition>
-		<transition id="id85">
-			<source ref="id74"/>
-			<target ref="id72"/>
-		</transition>
-		<transition id="id86">
-			<source ref="id74"/>
-			<target ref="id73"/>
-		</transition>
-		<transition id="id87">
-			<source ref="id75"/>
-			<target ref="id74"/>
-			<label kind="synchronisation" x="-93" y="-255">Authenticate!</label>
-		</transition>
+		<init ref="id87"/>
 		<transition id="id88">
-			<source ref="id77"/>
-			<target ref="id75"/>
+			<source ref="id87"/>
+			<target ref="id83"/>
 		</transition>
 		<transition id="id89">
-			<source ref="id76"/>
-			<target ref="id81"/>
+			<source ref="id77"/>
+			<target ref="id87"/>
 		</transition>
 		<transition id="id90">
-			<source ref="id77"/>
-			<target ref="id76"/>
+			<source ref="id79"/>
+			<target ref="id77"/>
+			<label kind="synchronisation" x="-468" y="-144">UnlockDoor!</label>
 		</transition>
 		<transition id="id91">
-			<source ref="id80"/>
-			<target ref="id77"/>
+			<source ref="id78"/>
+			<target ref="id87"/>
+			<nail x="-272" y="-34"/>
 		</transition>
 		<transition id="id92">
-			<source ref="id79"/>
+			<source ref="id80"/>
 			<target ref="id78"/>
+			<label kind="guard" x="-263" y="-221">!Auth</label>
+			<label kind="synchronisation" x="-263" y="-204">Notify!</label>
+			<nail x="-272" y="-238"/>
 		</transition>
 		<transition id="id93">
-			<source ref="id81"/>
+			<source ref="id80"/>
 			<target ref="id79"/>
+			<label kind="guard" x="-263" y="-289">Auth</label>
+			<label kind="synchronisation" x="-297" y="-272">Authorized!</label>
 		</transition>
 		<transition id="id94">
 			<source ref="id81"/>
 			<target ref="id80"/>
-			<label kind="synchronisation" x="-94" y="-34">Hbeat?</label>
-			<label kind="assignment" x="-94" y="-17">HbeatTimer:=0</label>
+			<label kind="synchronisation" x="-93" y="-255">Authenticate!</label>
+		</transition>
+		<transition id="id95">
+			<source ref="id83"/>
+			<target ref="id81"/>
+			<label kind="guard" x="51" y="-229">Request</label>
+			<label kind="synchronisation" x="51" y="-212">CommandRecieved!</label>
+		</transition>
+		<transition id="id96">
+			<source ref="id82"/>
+			<target ref="id87"/>
+		</transition>
+		<transition id="id97">
+			<source ref="id83"/>
+			<target ref="id82"/>
+			<label kind="guard" x="-85" y="-144">!Request</label>
+		</transition>
+		<transition id="id98">
+			<source ref="id85"/>
+			<target ref="id84"/>
+		</transition>
+		<transition id="id99">
+			<source ref="id87"/>
+			<target ref="id85"/>
+			<label kind="guard" x="-93" y="52">HbeatTimer&gt;10</label>
+		</transition>
+		<transition id="id100">
+			<source ref="id87"/>
+			<target ref="id86"/>
+			<label kind="synchronisation" x="-94" y="-17">Hbeat?</label>
+			<label kind="assignment" x="-94" y="0">HbeatTimer:=0</label>
 		</transition>
 	</template>
 	<template>
 		<name>authentication</name>
-		<location id="id95" x="51" y="76">
+		<location id="id101" x="51" y="76">
 			<name x="59" y="51">Authenticated</name>
 		</location>
-		<location id="id96" x="-93" y="-85">
+		<location id="id102" x="-93" y="-85">
 			<name x="-127" y="-119">ErrorAuth</name>
 		</location>
-		<location id="id97" x="-229" y="-17">
+		<location id="id103" x="-229" y="-17">
 			<name x="-280" y="-51">Unauthorized</name>
 		</location>
-		<location id="id98" x="51" y="-17">
+		<location id="id104" x="51" y="-17">
 			<name x="17" y="-51">Authenticating</name>
 		</location>
-		<location id="id99" x="-93" y="144">
+		<location id="id105" x="-93" y="144">
 			<name x="-136" y="152">Authorized</name>
 		</location>
-		<init ref="id97"/>
-		<transition id="id100">
-			<source ref="id95"/>
-			<target ref="id99"/>
+		<init ref="id103"/>
+		<transition id="id106">
+			<source ref="id101"/>
+			<target ref="id105"/>
 			<label kind="assignment" x="-25" y="110">Auth:=true</label>
 		</transition>
-		<transition id="id101">
-			<source ref="id98"/>
-			<target ref="id95"/>
+		<transition id="id107">
+			<source ref="id104"/>
+			<target ref="id101"/>
 		</transition>
-		<transition id="id102">
-			<source ref="id96"/>
-			<target ref="id97"/>
+		<transition id="id108">
+			<source ref="id102"/>
+			<target ref="id103"/>
 		</transition>
-		<transition id="id103">
-			<source ref="id98"/>
-			<target ref="id96"/>
-			<label kind="guard" x="-51" y="-85">Auth==false</label>
+		<transition id="id109">
+			<source ref="id104"/>
+			<target ref="id102"/>
+			<label kind="guard" x="-34" y="-93">!Auth</label>
+			<label kind="assignment" x="-34" y="-76">Error:=6</label>
 		</transition>
-		<transition id="id104">
-			<source ref="id99"/>
-			<target ref="id97"/>
-			<label kind="guard" x="-195" y="59">Auth==false</label>
+		<transition id="id110">
+			<source ref="id105"/>
+			<target ref="id103"/>
+			<label kind="guard" x="-204" y="59">!Auth</label>
 		</transition>
-		<transition id="id105">
-			<source ref="id97"/>
-			<target ref="id98"/>
+		<transition id="id111">
+			<source ref="id103"/>
+			<target ref="id104"/>
 			<label kind="synchronisation" x="-144" y="0">Authenticate?</label>
 			<nail x="-93" y="34"/>
 		</transition>
