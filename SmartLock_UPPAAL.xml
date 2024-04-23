@@ -657,6 +657,10 @@ lock/unlock cycles.</comment>
 			</result>
 		</query>
 		<query>
+			<formula>E&lt;&gt; Heartbeat.StillAlive</formula>
+			<comment/>
+		</query>
+		<query>
 			<formula/>
 			<comment/>
 		</query>
