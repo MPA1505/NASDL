@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+
+chan Heartbeat;
+chan UnlockCommand;
+chan LockCommand;
+chan UnlockDoor;
+chan LockDoor;
+chan DoorLocked;
+chan DoorUnlocked;
+chan DoorIsLocking;
+chan Notify;
+chan Failed;
+chan LogIn;
+chan LogOut;
+chan LoggedIn;
+chan LoggedOut;
+chan NotAuthorized;
+
+clock UnlockTimer;
+clock LockTimer;
+
+bool Locked = true;
+bool Authorized = false;
+
+int Errors = 0;</declaration>
+	<template>
+		<name>ui</name>
+		<location id="id0" x="-8" y="-136">
+			<name x="8" y="-144">Authenticate</name>
+		</location>
+		<location id="id1" x="-8" y="-246">
+			<name x="-51" y="-280">Unauthorized</name>
+		</location>
+		<location id="id2" x="-8" y="0">
+			<name x="-42" y="-34">Authorized</name>
+		</location>
+		<init ref="id1"/>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="102" y="-204">NotAuthorized?</label>
+			<nail x="93" y="-170"/>
+			<nail x="93" y="-221"/>
+		</transition>
+		<transition id="id4">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-153" y="-204">LoggedOut?</label>
+			<nail x="-68" y="-195"/>
+		</transition>
+		<transition id="id5">
+			<source ref="id2"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-119" y="-93">LogOut!</label>
+			<nail x="-59" y="-77"/>
+		</transition>
+		<transition id="id6">
+			<source ref="id0"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="0" y="-85">LoggedIn?</label>
+		</transition>
+		<transition id="id7">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="0" y="-203">LogIn!</label>
+		</transition>
+		<transition id="id8">
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-33" y="85">Notify?</label>
+			<nail x="26" y="85"/>
+			<nail x="-42" y="85"/>
+		</transition>
+		<transition id="id9">
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-212" y="-25">UnlockCommand!</label>
+			<label kind="assignment" x="-212" y="-8">UnlockTimer:=0</label>
+			<nail x="-93" y="-34"/>
+			<nail x="-93" y="34"/>
+		</transition>
+		<transition id="id10">
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="85" y="-25">LockCommand!</label>
+			<nail x="77" y="34"/>
+			<nail x="77" y="-34"/>
+		</transition>
+	</template>
+	<template>
+		<name>backend</name>
+		<location id="id11" x="-127" y="-212">
+			<name x="-170" y="-246">Authenticate</name>
+		</location>
+		<location id="id12" x="238" y="0">
+			<name x="228" y="-34">ForwardLock</name>
+		</location>
+		<location id="id13" x="-519" y="0">
+			<name x="-638" y="-34">ForwardUnlock</name>
+			<label kind="invariant" x="-672" y="-17">UnlockTimer &lt;= 10</label>
+		</location>
+		<location id="id14" x="-127" y="0">
+			<name x="-144" y="-34">Idle</name>
+		</location>
+		<location id="id15" x="-519" y="204">
+			<name x="-621" y="178">AwaitUnlock</name>
+			<label kind="invariant" x="-672" y="195">UnlockTimer &lt;= 10</label>
+		</location>
+		<location id="id16" x="238" y="204">
+			<name x="255" y="195">AwaitLock</name>
+		</location>
+		<init ref="id14"/>
+		<transition id="id17">
+			<source ref="id14"/>
+			<target ref="id14"/>
+			<label kind="guard" x="-161" y="153">Errors&gt;0</label>
+			<label kind="synchronisation" x="-161" y="170">Notify!</label>
+			<label kind="assignment" x="-161" y="187">Errors--</label>
+			<nail x="-178" y="204"/>
+			<nail x="-76" y="204"/>
+		</transition>
+		<transition id="id18">
+			<source ref="id14"/>
+			<target ref="id16"/>
+			<label kind="guard" x="263" y="-144">!Locked &amp;&amp;
+Errors==0</label>
+			<label kind="synchronisation" x="263" y="-110">DoorIsLocking?</label>
+			<nail x="76" y="-85"/>
+			<nail x="373" y="-85"/>
+			<nail x="374" y="136"/>
+		</transition>
+		<transition id="id19">
+			<source ref="id11"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="42" y="-289">NotAuthorized!</label>
+			<label kind="assignment" x="42" y="-272">Authorized:=false</label>
+			<nail x="42" y="-255"/>
+			<nail x="153" y="-255"/>
+			<nail x="153" y="-204"/>
+		</transition>
+		<transition id="id20">
+			<source ref="id11"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="-85" y="-204">LoggedIn!</label>
+			<label kind="assignment" x="-85" y="-187">Authorized:=true</label>
+			<nail x="-85" y="-161"/>
+		</transition>
+		<transition id="id21">
+			<source ref="id11"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="-289" y="-204">LoggedOut!</label>
+			<label kind="assignment" x="-306" y="-187">Authorized:=false</label>
+			<nail x="-170" y="-161"/>
+		</transition>
+		<transition id="id22">
+			<source ref="id14"/>
+			<target ref="id11"/>
+			<label kind="synchronisation" x="-348" y="-238">LogOut?</label>
+			<nail x="-365" y="-212"/>
+		</transition>
+		<transition id="id23">
+			<source ref="id14"/>
+			<target ref="id11"/>
+			<label kind="synchronisation" x="51" y="-238">LogIn?</label>
+			<nail x="110" y="-212"/>
+		</transition>
+		<transition id="id24">
+			<source ref="id16"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="59" y="170">Failed?</label>
+			<label kind="assignment" x="59" y="187">Errors++</label>
+			<nail x="51" y="204"/>
+		</transition>
+		<transition id="id25">
+			<source ref="id15"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="-425" y="170">Failed?</label>
+			<label kind="assignment" x="-425" y="187">Errors++</label>
+			<nail x="-314" y="204"/>
+		</transition>
+		<transition id="id26">
+			<source ref="id13"/>
+			<target ref="id14"/>
+			<label kind="guard" x="-484" y="-102">UnlockTimer &gt;= 10</label>
+			<label kind="assignment" x="-484" y="-85">Errors++</label>
+			<nail x="-520" y="-68"/>
+			<nail x="-383" y="-68"/>
+		</transition>
+		<transition id="id27">
+			<source ref="id16"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="60" y="102">DoorLocked?</label>
+			<label kind="assignment" x="60" y="119">Locked:=true</label>
+			<nail x="179" y="136"/>
+			<nail x="52" y="136"/>
+		</transition>
+		<transition id="id28">
+			<source ref="id15"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="-426" y="93">DoorUnlocked?</label>
+			<label kind="assignment" x="-426" y="110">Locked:=false</label>
+			<nail x="-434" y="127"/>
+			<nail x="-315" y="127"/>
+		</transition>
+		<transition id="id29">
+			<source ref="id12"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="60" y="34">DoorLocked?</label>
+			<label kind="assignment" x="60" y="51">Locked:=true</label>
+			<nail x="178" y="68"/>
+			<nail x="52" y="68"/>
+		</transition>
+		<transition id="id30">
+			<source ref="id12"/>
+			<target ref="id16"/>
+			<label kind="synchronisation" x="247" y="102">LockDoor!</label>
+		</transition>
+		<transition id="id31">
+			<source ref="id14"/>
+			<target ref="id12"/>
+			<label kind="guard" x="59" y="-76">!Locked &amp;&amp;
+Authorized &amp;&amp;
+Errors==0</label>
+			<label kind="synchronisation" x="60" y="-17">LockCommand?</label>
+		</transition>
+		<transition id="id32">
+			<source ref="id13"/>
+			<target ref="id15"/>
+			<label kind="synchronisation" x="-612" y="93">UnlockDoor!</label>
+		</transition>
+		<transition id="id33">
+			<source ref="id14"/>
+			<target ref="id13"/>
+			<label kind="guard" x="-484" y="-51">Locked &amp;&amp;
+Errors==0</label>
+			<label kind="synchronisation" x="-485" y="-17">UnlockCommand?</label>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">lock</name>
+		<declaration>// Place local declarations here.
+</declaration>
+		<location id="id34" x="-85" y="-8">
+			<name x="-110" y="-42">Locked</name>
+		</location>
+		<location id="id35" x="195" y="161">
+			<name x="212" y="144">Unlocked</name>
+			<label kind="invariant" x="212" y="161">LockTimer &lt;= 10</label>
+		</location>
+		<location id="id36" x="195" y="-8">
+			<name x="212" y="-42">Unlocking</name>
+			<label kind="invariant" x="212" y="-25">UnlockTimer &lt;= 10</label>
+		</location>
+		<location id="id37" x="-85" y="161">
+			<name x="-161" y="144">Locking</name>
+		</location>
+		<init ref="id34"/>
+		<transition id="id38">
+			<source ref="id37"/>
+			<target ref="id35"/>
+			<label kind="synchronisation" x="0" y="85">Failed!</label>
+			<nail x="-8" y="102"/>
+			<nail x="110" y="102"/>
+		</transition>
+		<transition id="id39">
+			<source ref="id36"/>
+			<target ref="id34"/>
+			<label kind="synchronisation" x="0" y="-93">Failed!</label>
+			<nail x="102" y="-76"/>
+			<nail x="-8" y="-76"/>
+		</transition>
+		<transition id="id40">
+			<source ref="id35"/>
+			<target ref="id37"/>
+			<label kind="guard" x="0" y="195">LockTimer &gt;= 10</label>
+			<label kind="synchronisation" x="0" y="212">DoorIsLocking!</label>
+			<nail x="144" y="229"/>
+			<nail x="-25" y="229"/>
+		</transition>
+		<transition id="id41">
+			<source ref="id37"/>
+			<target ref="id34"/>
+			<label kind="synchronisation" x="-178" y="51">DoorLocked!</label>
+		</transition>
+		<transition id="id42">
+			<source ref="id36"/>
+			<target ref="id35"/>
+			<label kind="synchronisation" x="204" y="51">DoorUnlocked!</label>
+			<label kind="assignment" x="204" y="68">LockTimer:=0</label>
+		</transition>
+		<transition id="id43">
+			<source ref="id35"/>
+			<target ref="id37"/>
+			<label kind="synchronisation" x="0" y="161">LockDoor?</label>
+		</transition>
+		<transition id="id44">
+			<source ref="id34"/>
+			<target ref="id36"/>
+			<label kind="guard" x="0" y="-42">UnlockTimer &lt;= 10</label>
+			<label kind="synchronisation" x="0" y="-25">UnlockDoor?</label>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+Lock = lock();
+UI = ui();
+Backend = backend();
+
+
+// List one or more processes to be composed into a system.
+system UI, Lock, Backend;
+</system>
+	<queries>
+		<query>
+			<formula/>
+			<comment># Deadlock</comment>
+		</query>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment># Reachability</comment>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>A[] UI.Unauthorized imply not Authorized</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] UI.Authorized imply Authorized</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] Backend.ForwardLock imply Authorized</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] Backend.ForwardUnlock imply Authorized</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] Lock.Unlocking imply (UnlockTimer &lt;= 10)</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] (Locked and UnlockTimer &gt; 10) imply (Lock.Locked or Lock.Locking or Lock.Unlocked)</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-05-01 19:12:45 +0200">
+			</result>
+		</query>
+	</queries>
+</nta>
