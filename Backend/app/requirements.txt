@@ -5,3 +5,5 @@ flask_jwt_extended
 Werkzeug==2.2.2
 requests
 flask_cors
+paho-mqtt
+flask_socketio

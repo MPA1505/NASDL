@@ -1,10 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import mqtt from 'mqtt';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [doorStatus, setDoorStatus] = useState('locked');
+
+  useEffect(() => {
+    const client = mqtt.connect(process.env.REACT_APP_SOCKET_URL); 
+    client.on('connect', function () {
+      console.log("Connected to MQTT Broker via WebSockets");
+      client.subscribe('home/response_door', function (err) {
+        if (!err) {
+          console.log('Successfully subscribed to home/response_door');
+        } else {
+          console.error('Subscription error:', err);
+        }
+      });
+    });
+
+    client.on('message', function (topic, message) {
+      const status = message.toString();
+      setDoorStatus(status);
+    });
+
+    return () => {
+      client.end();
+    };
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -23,16 +48,38 @@ function App() {
       }
 
       const data = await response.json();
-      localStorage.setItem('token', data.access_token); // Store the token
+      localStorage.setItem('token', data.access_token);
       setIsLoggedIn(true);
     } catch (error) {
       alert(error.message);
     }
   };
 
-  const handleUnlock = () => {
-    // Placeholder for sending the unlock command
-    alert("Unlocking door...");
+  const handleUnlock = async () => {
+    const timestamp = new Date().toISOString();
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/open-door`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ timestamp })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unlock door');
+      }
+
+      const data = await response.json();
+      alert(data.message); 
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const doorStatusStyle = {
+    color: doorStatus === 'unlocked' ? 'green' : 'red',
   };
 
   return (
@@ -40,10 +87,15 @@ function App() {
       <div className="row justify-content-center">
         <div className="col-md-6">
           {isLoggedIn ? (
-            <div className="text-center mt-5">
-              <h2>Unlock door</h2>
-              <button onClick={handleUnlock} className="btn btn-primary mt-3">Unlock Door</button>
-            </div>
+            <>
+              <div className="text-center mt-5">
+                <h2>Unlock Door</h2>
+                <button onClick={handleUnlock} className="btn btn-primary mt-3">Unlock Door</button>
+              </div>
+              <div className="text-center mt-3">
+                <span style={doorStatusStyle}>Door status: {doorStatus}</span>
+              </div>
+            </>
           ) : (
             <div className="card p-4 mt-5">
               <form onSubmit={handleLogin}>
@@ -83,4 +135,3 @@ function App() {
 }
 
 export default App;
-
