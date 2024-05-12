@@ -34,4 +34,7 @@ void app_main(void) {
 	wifi_init();
 
     LED_indicate_door_status();
+
+    // Initialize MQTT
+    mqtt_init();
 }

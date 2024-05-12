@@ -5,19 +5,19 @@
 #include "sdkconfig.h"
 #include <time.h>
 #include <string.h>
+#include "led_blink.h"
 
 #define MQTT_BROKER CONFIG_MQTT_BROKER
 #define MQTT_COMMAND_TOPIC CONFIG_MQTT_COMMAND_TOPIC
 #define MQTT_RESPONSE_TOPIC CONFIG_MQTT_RESPONSE_TOPIC
 
 static esp_mqtt_client_handle_t client = NULL;
+static const char *TAG = "MQTT";
 
-bool check_if_unlock_door(void) {
-
-    if (false) {
-        return true;  
-    } else {
-        return false;  
+static void log_error_if_nonzero(const char *message, int error_code)
+{
+    if (error_code != 0) {
+        ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
 }
 
@@ -40,6 +40,7 @@ void handle_command(char *data) {
                 // Command is recent, within the last 10 seconds
                 int msg_id = esp_mqtt_client_publish(client, MQTT_RESPONSE_TOPIC, "unlocked", 0, 0, 0);
                 ESP_LOGI(TAG, "sent publish unlocked, msg_id=%d", msg_id);
+                turn_on_green_LED();
 
                 // Wait for 10 seconds
                 vTaskDelay(10000 / portTICK_PERIOD_MS);
@@ -47,6 +48,7 @@ void handle_command(char *data) {
                 // Then publish "locked"
                 msg_id = esp_mqtt_client_publish(client, MQTT_RESPONSE_TOPIC, "locked", 0, 0, 0);
                 ESP_LOGI(TAG, "sent publish locked, msg_id=%d", msg_id);
+                turn_on_red_LED();
             }
         }
     }
@@ -65,7 +67,9 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED. Attempting reconnect...");
+        vTaskDelay(pdMS_TO_TICKS(500));
+        esp_mqtt_client_reconnect(client);
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -102,7 +106,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-static void mqtt_app_start(void)
+void mqtt_init(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = MQTT_BROKER,
