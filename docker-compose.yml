@@ -1,37 +1,57 @@
-  version: '3.9'
-  
-  services:
-    backend:
-      build: ./Backend
-      ports:
-        - "5000:80"
-      depends_on:
-        - mongo_users
-      restart: always
-      environment:
-        MONGO_URI: "mongodb://root:root@mongo_users:27017"
-        USERNAME: "user"
-        PASSWORD: "password123"
-  
-    mongo_users:
-      image: mongo:latest
-      environment:
-        MONGO_INITDB_ROOT_USERNAME: root
-        MONGO_INITDB_ROOT_PASSWORD: root
-        MONGO_INITDB_DATABASE: usersdb
-      expose:
-        - "27017"
-      restart: always
-      volumes:
-        - mongo_users:/data/db
+version: '3.9'
 
-    pwa:
-      build: ./react-pwa
-      ports:
-        - "80:80"
-      restart: always
-      environment:
-        REACT_APP_BACKEND_URL: "http://backend:80"
+services:
+  backend:
+    build: ./Backend
+    ports:
+      - "5000:80"
+    depends_on:
+      - mongo_users
+      - mosquitto
+    restart: always
+    environment:
+      MONGO_URI: "mongodb://root:root@mongo_users:27017"
+      USERNAME: "user"
+      PASSWORD: "password123"
+      MQTT_BROKER: "mosquitto"
+      MQTT_PORT: 1883
+      MQTT_OPEN_TOPIC: "home/open_door"
+      MQTT_RESPONSE_TOPIC: "home/response_door"
 
-  volumes:
-    mongo_users:
+  mongo_users:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: usersdb
+    expose:
+      - "27017"
+    restart: always
+    volumes:
+      - mongo_users:/data/db
+
+  pwa:
+    build: ./react-pwa
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      REACT_APP_BACKEND_URL: "http://backend:80"
+      REACT_APP_SOCKET_URL: "http://backend:80"
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"  
+      - "9001:9001" 
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+      - ./mosquitto_config:/mosquitto/config
+    restart: always
+    
+
+volumes:
+  mongo_users:
+  mosquitto_data:
+  mosquitto_log:
