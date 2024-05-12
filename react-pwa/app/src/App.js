@@ -1,22 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import io from 'socket.io-client';
+import mqtt from 'mqtt';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [doorStatus, setDoorStatus] = useState('locked'); 
+  const [doorStatus, setDoorStatus] = useState('locked');
 
   useEffect(() => {
-    const socket = io(process.env.REACT_APP_SOCKET_URL); 
-
-    socket.on('door_status', (data) => {
-      const status = data.data.split(',')[0]; // Assuming the status is the first part of the message
-      setDoorStatus(status === 'unlock' ? 'unlocked' : 'locked');
+    const client = mqtt.connect(process.env.REACT_APP_SOCKET_URL); 
+    client.on('connect', function () {
+      console.log("Connected to MQTT Broker via WebSockets");
+      client.subscribe('home/response_door', function (err) {
+        if (!err) {
+          console.log('Successfully subscribed to home/response_door');
+        } else {
+          console.error('Subscription error:', err);
+        }
+      });
     });
 
-    return () => socket.disconnect();
+    client.on('message', function (topic, message) {
+      const status = message.toString();
+      setDoorStatus(status);
+    });
+
+    return () => {
+      client.end();
+    };
   }, []);
 
   const handleLogin = async (e) => {
@@ -36,7 +48,7 @@ function App() {
       }
 
       const data = await response.json();
-      localStorage.setItem('token', data.access_token); // Store the token
+      localStorage.setItem('token', data.access_token);
       setIsLoggedIn(true);
     } catch (error) {
       alert(error.message);
@@ -44,27 +56,25 @@ function App() {
   };
 
   const handleUnlock = async () => {
-    // Get the current timestamp in ISO format
     const timestamp = new Date().toISOString();
-
     try {
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/open-door`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ timestamp })
-        });
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/open-door`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ timestamp })
+      });
 
-        if (!response.ok) {
-            throw new Error('Failed to unlock door');
-        }
+      if (!response.ok) {
+        throw new Error('Failed to unlock door');
+      }
 
-        const data = await response.json();
-        alert(data.message); 
+      const data = await response.json();
+      alert(data.message); 
     } catch (error) {
-        alert(error.message);
+      alert(error.message);
     }
   };
 
@@ -79,7 +89,7 @@ function App() {
           {isLoggedIn ? (
             <>
               <div className="text-center mt-5">
-                <h2>Unlock door</h2>
+                <h2>Unlock Door</h2>
                 <button onClick={handleUnlock} className="btn btn-primary mt-3">Unlock Door</button>
               </div>
               <div className="text-center mt-3">

@@ -37,8 +37,7 @@ services:
     restart: always
     environment:
       REACT_APP_BACKEND_URL: "http://backend:80"
-      REACT_APP_SOCKET_URL: "http://backend:80"
-
+      REACT_APP_SOCKET_URL: "ws://localhost:9001"
   mosquitto:
     image: eclipse-mosquitto:latest
     ports:
