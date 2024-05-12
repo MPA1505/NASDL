@@ -5,22 +5,37 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif.h"
-#include "nvs_flash.h"
+#include "nvs_flash.h"  
 #include "sdkconfig.h"
 
 static const char *TAG = "WIFI";
+static wifi_status_callback_t wifi_callback = NULL;
+
+void notify_connection_status(bool isConnected);
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         ESP_LOGI(TAG, "WiFi disconnected, trying to reconnect...");
+        notify_connection_status(false);
         esp_wifi_connect();
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         char ip_str[16];
         esp_ip4addr_ntoa(&event->ip_info.ip, ip_str, sizeof(ip_str));
         ESP_LOGI(TAG, "Got IP address: %s", ip_str);
+        notify_connection_status(true);
+    }
+}
+
+void wifi_register_status_callback(wifi_status_callback_t callback) {
+    wifi_callback = callback;
+}
+
+void notify_connection_status(bool isConnected) {
+    if (wifi_callback) {
+        wifi_callback(isConnected);
     }
 }
 
@@ -51,15 +66,3 @@ void wifi_init(void) {
     ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-// Function to check the current WiFi connection status
-bool check_wifi_connected(void) {
-
-    wifi_ap_record_t ap_info;
-    if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-        ESP_LOGI(TAG, "Connected to AP, SSID:%s, RSSI:%d", ap_info.ssid, ap_info.rssi);
-        return true;  
-    } else {
-        ESP_LOGI(TAG, "Not connected to WiFi");
-        return false;  
-    }
-}
