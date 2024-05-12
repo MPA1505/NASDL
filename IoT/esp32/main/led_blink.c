@@ -1,31 +1,75 @@
 #include <stdio.h>
+#include <inttypes.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
+#include <hal/gpio_types.h>
 
-#define DELAY_MS 1000
-#define PIN 21
+#define PIN_GREEN 23
+#define PIN_BLUE 22
+#define PIN_RED 21
+
 static const char* TAG = "LED_BLINK_TASK";
 
-void TaskBlink(void *pvParameters)
+void turn_on_red_LED(void)
 {
-    uint8_t state = 1;
-    while (1)
-    {
-        gpio_set_level(PIN, state);
-        ESP_LOGI(TAG, "LED state set to: %d", state);
-        vTaskDelay(pdMS_TO_TICKS(DELAY_MS));
-        state = !state;
-    }
+    uint8_t on = 0;
+
+    // Turn off green LED
+    gpio_set_level(PIN_GREEN, !on);
+    ESP_LOGI(TAG, "Green LED turned off");
+
+    // Turn off blue LED
+    gpio_set_level(PIN_BLUE, !on);
+    ESP_LOGI(TAG, "Blue LED turned off");
+
+    // Toggle red LED
+    gpio_set_level(PIN_RED, on);
+    ESP_LOGI(TAG, "Red LED state set to: %d", on);
 }
 
-void app_main(void)
+void turn_on_green_LED(void)
 {
-    gpio_reset_pin(PIN);
-    gpio_set_direction(PIN, GPIO_MODE_OUTPUT);
+    uint8_t on = 0;
 
-    ESP_LOGI(TAG, "Starting LED blink task on pin %d", PIN);
-    xTaskCreate(TaskBlink, "BlinkLED", 2048, NULL, 1, NULL);
+    // Turn off red LED
+    gpio_set_level(PIN_RED, !on);
+    ESP_LOGI(TAG, "RED LED turned off");
+
+    // Turn off blue LED
+    gpio_set_level(PIN_BLUE, !on);
+    ESP_LOGI(TAG, "Blue LED turned off");
+
+    // Toggle green LED
+    gpio_set_level(PIN_GREEN, on);
+    ESP_LOGI(TAG, "Green LED state set to: %d", on);
+}
+
+void turn_on_blue_LED(void)
+{
+    uint8_t on = 0;
+
+    // Turn off red LED
+    gpio_set_level(PIN_RED, !on);
+    ESP_LOGI(TAG, "RED LED turned off");
+
+    // Turn off green LED
+    gpio_set_level(PIN_GREEN, !on);
+    ESP_LOGI(TAG, "Green LED turned off");
+
+    // Toggle blue LED
+    gpio_set_level(PIN_BLUE, on);
+    ESP_LOGI(TAG, "Blue LED state set to: %d", on);
+}
+
+void init_LED(void)
+{
+    gpio_reset_pin(PIN_GREEN);
+    gpio_set_direction(PIN_GREEN, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(PIN_BLUE);
+    gpio_set_direction(PIN_BLUE, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(PIN_RED);
+    gpio_set_direction(PIN_RED, GPIO_MODE_OUTPUT);
 }
