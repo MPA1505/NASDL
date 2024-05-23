@@ -20,4 +20,12 @@ config MQTT_RESPONSE_TOPIC
 	string "Example Response Topic"
 	default "org/sdu/2024/iot/my/name/response"
 
+config MQTT_TIME_TOPIC
+	string "Example Time Topic"
+	default "org/sdu/2024/iot/my/name/time"
+	
+config MQTT_LOG_TOPIC
+	string "Example Log Topic"
+	default "org/sdu/2024/iot/my/name/log"
+
 endmenu

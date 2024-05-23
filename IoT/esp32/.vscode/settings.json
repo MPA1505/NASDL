@@ -15,5 +15,21 @@
     "idf.portWin": "COM3",
     "idf.pythonBinPathWin": "C:\\Users\\Gormd\\.espressif\\python_env\\idf5.2_py3.11_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "C:\\Users\\Gormd\\.espressif",
-    "idf.flashType": "UART"
+    "idf.flashType": "UART",
+    "files.associations": {
+        "task.h": "c",
+        "gpio.h": "c",
+        "stdio.h": "c",
+        "inttypes.h": "c",
+        "sdkconfig.h": "c",
+        "sstream": "c",
+        "string.h": "c",
+        "sntp.h": "c",
+        "string": "c",
+        "esp_timer.h": "c",
+        "*.tcc": "c",
+        "chrono": "c",
+        "format": "c",
+        "type_traits": "c"
+    }
 }

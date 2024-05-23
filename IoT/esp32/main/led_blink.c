@@ -12,6 +12,21 @@
 #define PIN_RED 21
 
 static const char* TAG = "LED_BLINK_TASK";
+bool door_is_locked = true;
+
+typedef void (*door_status_callback_t)(bool locked);
+door_status_callback_t door_status_callback = NULL;
+
+void door_register_status_callback(door_status_callback_t callback) {
+    door_status_callback = callback;
+}
+
+void set_lock_status(bool locked) {
+    door_is_locked = locked;
+    if (door_status_callback) {
+        door_status_callback(door_is_locked);
+    }
+}
 
 void turn_on_red_LED(void)
 {

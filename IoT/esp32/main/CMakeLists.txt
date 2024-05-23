@@ -1,2 +1,2 @@
-idf_component_register(SRCS "led_blink.c" "main.c" "wifi.c" "mqtt.c"
+idf_component_register(SRCS "logging.c" "led_blink.c" "main.c" "wifi.c" "mqtt.c"
                     INCLUDE_DIRS "")

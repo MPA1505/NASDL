@@ -7,6 +7,11 @@
 #include "esp_netif.h"
 #include "nvs_flash.h"  
 #include "sdkconfig.h"
+#include "esp_sntp.h"
+#include <time.h>
+#include <esp_system.h>
+#include <stdio.h>
+
 
 static const char *TAG = "WIFI";
 static wifi_status_callback_t wifi_callback = NULL;
@@ -41,7 +46,6 @@ void notify_connection_status(bool isConnected) {
 
 void wifi_init(void) {
     ESP_ERROR_CHECK(nvs_flash_init());
-
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
@@ -64,5 +68,25 @@ void wifi_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    // Initialize SNTP
+    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_init();
 }
 
+char* get_network_activity() {
+    wifi_ap_record_t ap_info;
+    char* buffer = (char*)malloc(256);
+    if (buffer == NULL) {
+        return NULL;
+    }
+
+    if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+        snprintf(buffer, 256, "Network Activity: RSSI = %d dBm, SSID = %s", ap_info.rssi, ap_info.ssid);
+    } else {
+        snprintf(buffer, 256, "Failed to get AP info");
+    }
+
+    return buffer;
+}

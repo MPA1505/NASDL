@@ -9,4 +9,6 @@ void wifi_register_status_callback(wifi_status_callback_t callback);
 
 void wifi_init(void);
 
+char* get_network_activity();
+
 #endif

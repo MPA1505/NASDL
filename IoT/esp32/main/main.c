@@ -1,13 +1,19 @@
 #include "wifi.h"
+#include "logging.h"
 #include "led_blink.h"
 #include "mqtt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <stdbool.h>
 
-bool door_is_locked = true;
+bool locked = true;
+
+void set_lock(bool lock_door) {
+    locked = lock_door;
+}
 
 void LED_indicate_door_status(void){
-    if (door_is_locked) {
+    if (locked) {
         turn_on_red_LED();
     } else {
         turn_on_green_LED();
@@ -23,8 +29,12 @@ void wifi_status_handler(bool connected) {
 }
 
 void app_main(void) {
+    // Initialize Logging
+    init_logging();
+
     // Initialize LEDs
     init_LED();
+    door_register_status_callback(set_lock);
 
     // Initialize Wi-Fi
     turn_on_blue_LED();
