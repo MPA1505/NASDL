@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import mqtt from 'mqtt';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -7,9 +7,12 @@ function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [doorStatus, setDoorStatus] = useState('locked');
+  const [counter, setCounter] = useState(0);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
-    const client = mqtt.connect(process.env.REACT_APP_SOCKET_URL); 
+    const client = mqtt.connect(process.env.REACT_APP_SOCKET_URL);
+
     client.on('connect', function () {
       console.log("Connected to MQTT Broker via WebSockets");
       client.subscribe('home/response_door', function (err) {
@@ -19,16 +22,35 @@ function App() {
           console.error('Subscription error:', err);
         }
       });
+      client.subscribe('home/heart_beat', function (err) {
+        if (!err) {
+          console.log('Successfully subscribed to home/heart_beat');
+        } else {
+          console.error('Subscription error:', err);
+        }
+      });
     });
 
     client.on('message', function (topic, message) {
-      const status = message.toString();
-      setDoorStatus(status);
+      if (topic === 'home/response_door') {
+        const status = message.toString();
+        setDoorStatus(status);
+      } else if (topic === 'home/heart_beat') {
+        setCounter(0);
+      }
     });
 
     return () => {
       client.end();
     };
+  }, []);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setCounter((prevCounter) => prevCounter + 1);
+    }, 1000);
+
+    return () => clearInterval(intervalRef.current);
   }, []);
 
   const handleLogin = async (e) => {
@@ -95,6 +117,10 @@ function App() {
               <div className="text-center mt-3">
                 <span style={doorStatusStyle}>Door status: {doorStatus}</span>
               </div>
+              <div className="text-center mt-3">
+                <h2>Heartbeat Counter</h2>
+                <span>{counter} seconds</span>
+              </div>
             </>
           ) : (
             <div className="card p-4 mt-5">
@@ -135,3 +161,4 @@ function App() {
 }
 
 export default App;
+
