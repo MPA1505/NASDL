@@ -6,13 +6,13 @@
 #include <time.h>
 #include <string.h>
 #include "led_blink.h"
+#include <sys/time.h>
 
 #define MQTT_BROKER CONFIG_MQTT_BROKER
 #define MQTT_COMMAND_TOPIC CONFIG_MQTT_COMMAND_TOPIC
 #define MQTT_RESPONSE_TOPIC CONFIG_MQTT_RESPONSE_TOPIC
 #define MQTT_TIME_TOPIC CONFIG_MQTT_TIME_TOPIC
 #define MQTT_LOG_TOPIC CONFIG_MQTT_LOG_TOPIC
-
 
 
 static esp_mqtt_client_handle_t client = NULL;
@@ -75,7 +75,7 @@ void publish_log_time(int64_t current_time, int64_t command_time)
     int64_t timediff = current_time - command_time;
     log_time("Current Time", current_time);
     log_time("Command Time", command_time);
-    ESP_LOGI(TAG, "timediff of current_time - command_time, timediff=%f", timediff);
+    ESP_LOGI(TAG, "timediff of current_time - command_time, timediff=%lld", timediff);
 
     char timediff_str[20]; 
     sprintf(timediff_str, "%lld", timediff);
@@ -100,6 +100,7 @@ void handle_command(char *data) {
             struct timeval tv_now;
             gettimeofday(&tv_now, NULL);
             int64_t current_time = (int64_t)tv_now.tv_sec * 1000000LL + (int64_t)tv_now.tv_usec;
+            current_time = current_time / 1000000;
 
             if (difftime(current_time, command_time) <= 10) {  // Check if the difference is less than or equal to 10 seconds
                 // Command is recent, within the last 10 seconds
